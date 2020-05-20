@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Threading.Tasks;
 
-namespace DownloadManager10.Core.Helpers
+namespace DownloadManager10.Helpers
 {
     public static class Json
     {

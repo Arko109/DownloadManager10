@@ -72,7 +72,7 @@ namespace DownloadManager10.ViewModels
         {
             activeDownloads = new List<DownloadOperation>();
 
-            IReadOnlyList<DownloadOperation> downloads = null;
+            IReadOnlyList<DownloadOperation> downloads;
             try
             {
                 downloads = await BackgroundDownloader.GetCurrentDownloadsAsync();
@@ -104,15 +104,12 @@ namespace DownloadManager10.ViewModels
         private async void StartDownload(BackgroundTransferPriority priority)
         {
             if (!Uri.TryCreate(Url.Trim(), UriKind.Absolute, out Uri source))
-            {
                 return;
-            }
 
             string fileName;
             Regex regex = new Regex(@"[^\/?#]*\.[^\/?#]*");
-            MatchCollection matches = regex.Matches(source.ToString());
-            if (matches.Count < 2) fileName = "download.txt";
-            else fileName = matches.LastOrDefault().Value;
+            MatchCollection matches = regex.Matches(source.LocalPath);
+            fileName = matches.LastOrDefault()?.Value ?? "download.txt";
 
             StorageFile destinationFile;
             FileSavePicker savePicker = new FileSavePicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary };
@@ -122,9 +119,7 @@ namespace DownloadManager10.ViewModels
 
             destinationFile = await savePicker.PickSaveFileAsync();
             if (destinationFile == null)
-            {
                 return;
-            }
 
             BackgroundDownloader downloader = new BackgroundDownloader();
             DownloadOperation download = downloader.CreateDownload(source, destinationFile);
@@ -201,6 +196,7 @@ namespace DownloadManager10.ViewModels
         }
 
         #region Settings flyout
+
         private ElementTheme _elementTheme = ThemeSelectorService.Theme;
 
         public ElementTheme ElementTheme
@@ -248,6 +244,7 @@ namespace DownloadManager10.ViewModels
 
             return $"{appName} - {version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
         }
-        #endregion
+
+        #endregion Settings flyout
     }
 }
