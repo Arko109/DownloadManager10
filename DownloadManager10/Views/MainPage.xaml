@@ -1,0 +1,161 @@
+﻿<Page
+    x:Class="DownloadManager10.Views.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:m="using:DownloadManager10.Models"
+    xmlns:sys="using:System"
+    xmlns:xaml="using:Windows.UI.Xaml"
+    xmlns:h="using:DownloadManager10.Helpers"
+    Style="{StaticResource PageStyle}"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <h:EnumToBooleanConverter x:Key="EnumToBooleanConverter" EnumType="ElementTheme" />
+    </Page.Resources>
+    <Grid x:Name="ContentArea">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="48" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="auto" />
+        </Grid.RowDefinitions>
+
+        <Grid x:Name="AppTitleBar" Background="Transparent">
+            <!-- Width of the padding columns is set in LayoutMetricsChanged handler. -->
+            <!-- Using padding columns instead of Margin ensures that the background
+                 paints the area under the caption control buttons (for transparent buttons). -->
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition x:Name="LeftPaddingColumn" Width="0" />
+                <ColumnDefinition />
+                <ColumnDefinition x:Name="RightPaddingColumn" Width="0" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="DownloadManager10"
+                       Grid.Column="1"
+                       Style="{StaticResource CaptionTextBlockStyle}"
+                       Margin="12,8,0,0" />
+        </Grid>
+        <TextBlock Grid.Row="1" x:Uid="Main_Title" Style="{StaticResource PageTitleStyle}" x:Name="title" Margin="{StaticResource MediumLeftMargin}" />
+        <RelativePanel Grid.Row="2" Padding="24">
+            <ListView x:Name="list" SelectionMode="None" IsItemClickEnabled="False" ItemsSource="{x:Bind ViewModel.Downloads}"
+                      RelativePanel.AlignLeftWithPanel="True" RelativePanel.AlignRightWithPanel="True" RelativePanel.AlignBottomWithPanel="True" RelativePanel.AlignTopWithPanel="True">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="IsFocusEngagementEnabled" Value="True" />
+                        <Setter Property="Background" Value="{ThemeResource SystemControlAcrylicElementBrush}" />
+                        <!--<Setter Property="Margin" Value="{StaticResource MediumBottomMargin}" />-->
+                        <Setter Property="Padding" Value="12" />
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.ItemTemplate>
+                    <DataTemplate x:DataType="m:DownloadItem">
+                        <RelativePanel>
+                            <TextBlock Text="{x:Bind Name}" Style="{ThemeResource TitleTextBlockStyle}" x:Name="name" />
+                            <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" x:Name="status"
+                                       RelativePanel.AlignRightWithPanel="True" RelativePanel.Above="progress">
+                                <Run Text="{x:Bind Status, Mode=OneWay, TargetNullValue=Waiting}" />
+                                <Run Text="-" />
+                                <Run Text="{x:Bind sys:String.Format('{0:0.00}', Progress), Mode=OneWay}" />
+                                <Run Text="%" />
+                            </TextBlock>
+                            <ProgressBar Value="{x:Bind Progress, Mode=OneWay}" x:Name="progress" Margin="{StaticResource MediumTopBottomMargin}"
+                                         RelativePanel.Below="name" RelativePanel.AlignLeftWithPanel="True" RelativePanel.AlignRightWithPanel="True" />
+                            <CommandBar DefaultLabelPosition="Right" Background="Transparent"
+                                        RelativePanel.AlignRightWithPanel="True" RelativePanel.Below="progress">
+                                <AppBarButton Icon="Play" Label="Resume" IsEnabled="False" />
+                                <AppBarButton Icon="Pause" Label="Pause" IsEnabled="False" />
+                                <AppBarButton Icon="Cancel" Label="Cancel" IsEnabled="False" />
+                            </CommandBar>
+                        </RelativePanel>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </RelativePanel>
+        <CommandBar  Grid.Row="3"
+                    RelativePanel.Below="list" RelativePanel.AlignLeftWithPanel="True" RelativePanel.AlignRightWithPanel="True">
+            <!--<CommandBar.Resources>
+                <Style TargetType="AppBarButton" BasedOn="{StaticResource AppBarButtonRevealStyle}" />
+            </CommandBar.Resources>-->
+            <AppBarButton Label="Add" Icon="Add" AllowFocusOnInteraction="True">
+                <AppBarButton.Flyout>
+                    <Flyout LightDismissOverlayMode="On">
+                        <StackPanel Spacing="12" Width="300">
+                            <TextBlock Text="Add a new download" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                            <StackPanel Spacing="6">
+                                <TextBlock>URL:</TextBlock>
+                                <AutoSuggestBox PlaceholderText="http://example.com/file.ext" HorizontalAlignment="Stretch" Text="{x:Bind ViewModel.Url, Mode=TwoWay}" QuerySubmitted="AutoSuggestBox_QuerySubmitted" />
+                            </StackPanel>
+                            <StackPanel Spacing="6">
+                                <TextBlock>Priority:</TextBlock>
+                                <ComboBox SelectedItem="{x:Bind ViewModel.Priority, Mode=TwoWay}" ItemsSource="{x:Bind ViewModel.Priorities}" HorizontalAlignment="Stretch" />
+                            </StackPanel>
+                            <Button Content="Download" Command="{x:Bind ViewModel.DownloadCommand}" HorizontalAlignment="Stretch" />
+                        </StackPanel>
+                    </Flyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+
+            <AppBarSeparator />
+
+            <AppBarButton Label="Resume all" Icon="Play" IsEnabled="False" />
+            <AppBarButton Label="Pause all" Icon="Pause" IsEnabled="False" />
+            <AppBarButton Label="Cancel all" Icon="Cancel" Command="{x:Bind ViewModel.CancelAllCommand}" />
+
+            <AppBarSeparator />
+
+            <AppBarButton Label="Settings" Icon="Setting">
+                <AppBarButton.Flyout>
+                    <Flyout>
+                        <StackPanel Spacing="12">
+                            <StackPanel Spacing="6">
+                                <TextBlock x:Uid="Settings_Personalization" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                                <TextBlock x:Uid="Settings_Theme" />
+
+                                <StackPanel>
+                                    <RadioButton x:Uid="Settings_Theme_Light"
+                                                 Command="{x:Bind ViewModel.SwitchThemeCommand}"
+                                                 IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Light, Mode=OneWay}"
+                                                 FontSize="15"
+                                                 GroupName="AppTheme">
+                                        <RadioButton.CommandParameter>
+                                            <xaml:ElementTheme>Light</xaml:ElementTheme>
+                                        </RadioButton.CommandParameter>
+                                    </RadioButton>
+                                    <RadioButton x:Uid="Settings_Theme_Dark"
+                                                 Command="{x:Bind ViewModel.SwitchThemeCommand}"
+                                                 IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Dark, Mode=OneWay}"
+                                                 FontSize="15"
+                                                 GroupName="AppTheme">
+                                        <RadioButton.CommandParameter>
+                                            <xaml:ElementTheme>Dark</xaml:ElementTheme>
+                                        </RadioButton.CommandParameter>
+                                    </RadioButton>
+                                    <RadioButton x:Uid="Settings_Theme_Default"
+                                                 Command="{x:Bind ViewModel.SwitchThemeCommand}"
+                                                 IsChecked="{x:Bind ViewModel.ElementTheme, Converter={StaticResource EnumToBooleanConverter}, ConverterParameter=Default, Mode=OneWay}"
+                                                 FontSize="15"
+                                                 GroupName="AppTheme">
+                                        <RadioButton.CommandParameter>
+                                            <xaml:ElementTheme>Default</xaml:ElementTheme>
+                                        </RadioButton.CommandParameter>
+                                    </RadioButton>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Spacing="6">
+                                <TextBlock x:Uid="Settings_About" Style="{ThemeResource SubtitleTextBlockStyle}" />
+
+                                <StackPanel Spacing="3">
+                                    <TextBlock Style="{ThemeResource BodyTextBlockStyle}" Text="{x:Bind ViewModel.VersionDescription, Mode=OneWay}" />
+                                    <TextBlock x:Uid="Settings_AboutDescription" Style="{ThemeResource BodyTextBlockStyle}" />
+                                </StackPanel>
+                            </StackPanel>
+                        </StackPanel>
+                    </Flyout>
+                </AppBarButton.Flyout>
+            </AppBarButton>
+        </CommandBar>
+    </Grid>
+</Page>
