@@ -1,6 +1,7 @@
 ﻿using DownloadManager10.Helpers;
 using DownloadManager10.Models;
 using DownloadManager10.Services;
+using Microsoft.Toolkit.Uwp.Notifications;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -14,16 +15,29 @@ using Windows.ApplicationModel;
 using Windows.Networking.BackgroundTransfer;
 using Windows.Storage;
 using Windows.Storage.Pickers;
+using Windows.UI.Notifications;
 using Windows.UI.Xaml;
 
 namespace DownloadManager10.ViewModels
 {
     public class MainViewModel : Observable
     {
-        private ObservableCollection<DownloadItem> _downloads;
-        public ObservableCollection<DownloadItem> Downloads => _downloads ?? (_downloads = new ObservableCollection<DownloadItem>());
-        public string Url;
-        public BackgroundTransferPriority Priority;
+        public ObservableCollection<DownloadItem> Downloads = new ObservableCollection<DownloadItem>();
+        private string _url;
+
+        public string Url
+        {
+            get => _url;
+            set { Set(ref _url, value); }
+        }
+
+        private BackgroundTransferPriority _priority;
+
+        public BackgroundTransferPriority Priority
+        {
+            get => _priority;
+            set { Set(ref _priority, value); }
+        }
 
         public List<BackgroundTransferPriority> Priorities = new List<BackgroundTransferPriority>()
         {
@@ -32,8 +46,7 @@ namespace DownloadManager10.ViewModels
             BackgroundTransferPriority.Low
         };
 
-        private List<DownloadOperation> activeDownloads;
-        private CancellationTokenSource cts;
+        #region Commands
 
         private RelayCommand _downloadCommand;
 
@@ -53,25 +66,46 @@ namespace DownloadManager10.ViewModels
 
         public RelayCommand CancelAllCommand => _cancelAllCommand ?? (_cancelAllCommand = new RelayCommand(() =>
         {
-            Debug.WriteLine("Canceling Downloads: " + activeDownloads.Count);
+            Debug.WriteLine("Canceling Downloads: " + Downloads.Count);
 
-            cts.Cancel();
-            cts.Dispose();
+            foreach (var dl in Downloads.Where(di => !di.CancellationTokenSource.IsCancellationRequested))
+            {
+                dl.CancellationTokenSource.Cancel();
+                dl.CancellationTokenSource.Dispose();
+            }
 
-            cts = new CancellationTokenSource();
-            activeDownloads = new List<DownloadOperation>();
+            Downloads.Clear();
         }));
+
+        private RelayCommand _pauseAllCommand;
+
+        public RelayCommand PauseAllCommand => _pauseAllCommand ?? (_pauseAllCommand = new RelayCommand(() =>
+        {
+            foreach (var dl in Downloads.Where(di => di.Status == BackgroundTransferStatus.Running))
+            {
+                dl.DownloadOperation.Pause();
+            }
+        }));
+
+        private RelayCommand _resumeAllCommand;
+
+        public RelayCommand ResumeAllCommand => _resumeAllCommand ?? (_resumeAllCommand = new RelayCommand(() =>
+        {
+            foreach (var dl in Downloads.Where(di => di.Status == BackgroundTransferStatus.PausedByApplication || di.Status == BackgroundTransferStatus.PausedCostedNetwork || di.Status == BackgroundTransferStatus.PausedNoNetwork || di.Status == BackgroundTransferStatus.PausedRecoverableWebErrorStatus || di.Status == BackgroundTransferStatus.PausedSystemPolicy))
+            {
+                dl.DownloadOperation.Resume();
+            }
+        }));
+
+        #endregion Commands
 
         public MainViewModel()
         {
-            cts = new CancellationTokenSource();
             VersionDescription = GetVersionDescription();
         }
 
         private async Task DiscoverActiveDownloadsAsync()
         {
-            activeDownloads = new List<DownloadOperation>();
-
             IReadOnlyList<DownloadOperation> downloads;
             try
             {
@@ -122,6 +156,49 @@ namespace DownloadManager10.ViewModels
                 return;
 
             BackgroundDownloader downloader = new BackgroundDownloader();
+            ToastContent content = new ToastContent()
+            {
+                Visual = new ToastVisual()
+                {
+                    BindingGeneric = new ToastBindingGeneric()
+                    {
+                        Children =
+                        {
+                            new AdaptiveText()
+                            {
+                                Text = fileName
+                            },
+                            new AdaptiveText()
+                            {
+                                Text = "Download failed"
+                            }
+                        }
+                    }
+                }
+            };
+            downloader.FailureToastNotification = new ToastNotification(content.GetXml());
+            content = new ToastContent()
+            {
+                Visual = new ToastVisual()
+                {
+                    BindingGeneric = new ToastBindingGeneric()
+                    {
+                        Children =
+                        {
+                            new AdaptiveText()
+                            {
+                                Text = fileName
+                            },
+                            new AdaptiveText()
+                            {
+                                Text = "Download succeded"
+                            }
+                        }
+                    }
+                }
+            };
+            downloader.SuccessToastNotification = new ToastNotification(content.GetXml());
+
             DownloadOperation download = downloader.CreateDownload(source, destinationFile);
 
             Debug.WriteLine(String.Format(CultureInfo.CurrentCulture, "Downloading {0} to {1} with {2} priority, {3}",
@@ -130,25 +207,33 @@ namespace DownloadManager10.ViewModels
             download.Priority = priority;
 
             await HandleDownloadAsync(download, true);
+            Url = string.Empty;
+            Priority = BackgroundTransferPriority.Default;
         }
 
         private async Task HandleDownloadAsync(DownloadOperation download, bool start)
         {
+            DownloadItem downloadItem = new DownloadItem()
+            {
+                Guid = download.Guid,
+                Name = download.ResultFile.Name,
+                DownloadOperation = download,
+                CancellationTokenSource = new CancellationTokenSource()
+            };
             try
             {
                 Debug.WriteLine("Running: " + download.Guid);
 
-                activeDownloads.Add(download);
-                Downloads.Add(new DownloadItem() { Guid = download.Guid, Name = download.ResultFile.Name });
+                Downloads.Add(downloadItem);
 
                 Progress<DownloadOperation> progressCallback = new Progress<DownloadOperation>(DownloadProgress);
                 if (start)
                 {
-                    await download.StartAsync().AsTask(cts.Token, progressCallback);
+                    await download.StartAsync().AsTask(downloadItem.CancellationTokenSource.Token, progressCallback);
                 }
                 else
                 {
-                    await download.AttachAsync().AsTask(cts.Token, progressCallback);
+                    await download.AttachAsync().AsTask(downloadItem.CancellationTokenSource.Token, progressCallback);
                 }
 
                 ResponseInformation response = download.GetResponseInformation();
@@ -165,7 +250,6 @@ namespace DownloadManager10.ViewModels
             catch (TaskCanceledException)
             {
                 Debug.WriteLine("Canceled: " + download.Guid);
-                Downloads.FirstOrDefault(d => d.Guid.Equals(download.Guid)).Status = "Cancelled";
             }
             catch (Exception ex)
             {
@@ -173,9 +257,7 @@ namespace DownloadManager10.ViewModels
             }
             finally
             {
-                activeDownloads.Remove(download);
-                if (Downloads.FirstOrDefault(d => d.Guid.Equals(download.Guid)) is DownloadItem di && di.Status != "Cancelled")
-                    di.Status = "Finished";
+                downloadItem.Status = downloadItem.DownloadOperation.Progress.Status;
             }
         }
 
@@ -191,7 +273,7 @@ namespace DownloadManager10.ViewModels
             if (Downloads.FirstOrDefault(d => d.Guid.Equals(download.Guid)) is DownloadItem di)
             {
                 di.Progress = percent;
-                di.Status = currentProgress.Status.ToString();
+                di.Status = currentProgress.Status;
             }
         }
 

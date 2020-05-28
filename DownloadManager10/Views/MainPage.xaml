@@ -62,11 +62,15 @@
                             </TextBlock>
                             <ProgressBar Value="{x:Bind Progress, Mode=OneWay}" x:Name="progress" Margin="{StaticResource MediumTopBottomMargin}"
                                          RelativePanel.Below="name" RelativePanel.AlignLeftWithPanel="True" RelativePanel.AlignRightWithPanel="True" />
-                            <CommandBar DefaultLabelPosition="Right" Background="Transparent"
+                            <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" RelativePanel.AlignVerticalCenterWith="commands">
+                                <Run Text="Priority:" />
+                                <Run Text="{x:Bind DownloadOperation.Priority}" />
+                            </TextBlock>
+                            <CommandBar DefaultLabelPosition="Right" Background="Transparent" x:Name="commands"
                                         RelativePanel.AlignRightWithPanel="True" RelativePanel.Below="progress">
-                                <AppBarButton Icon="Play" Label="Resume" IsEnabled="False" />
-                                <AppBarButton Icon="Pause" Label="Pause" IsEnabled="False" />
-                                <AppBarButton Icon="Cancel" Label="Cancel" IsEnabled="False" />
+                                <AppBarButton Icon="Play" Label="Resume" Click="{x:Bind DownloadOperation.Resume}" />
+                                <AppBarButton Icon="Pause" Label="Pause" Click="{x:Bind DownloadOperation.Pause}" />
+                                <AppBarButton Icon="Cancel" Label="Cancel" Click="{x:Bind Cancel}" />
                             </CommandBar>
                         </RelativePanel>
                     </DataTemplate>
@@ -99,8 +103,8 @@
 
             <AppBarSeparator />
 
-            <AppBarButton Label="Resume all" Icon="Play" IsEnabled="False" />
-            <AppBarButton Label="Pause all" Icon="Pause" IsEnabled="False" />
+            <AppBarButton Label="Resume all" Icon="Play" Command="{x:Bind ViewModel.ResumeAllCommand}" />
+            <AppBarButton Label="Pause all" Icon="Pause" Command="{x:Bind ViewModel.PauseAllCommand}" />
             <AppBarButton Label="Cancel all" Icon="Cancel" Command="{x:Bind ViewModel.CancelAllCommand}" />
 
             <AppBarSeparator />
