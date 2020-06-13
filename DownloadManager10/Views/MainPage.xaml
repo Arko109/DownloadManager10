@@ -64,7 +64,7 @@
                                          RelativePanel.Below="name" RelativePanel.AlignLeftWithPanel="True" RelativePanel.AlignRightWithPanel="True" />
                             <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" RelativePanel.AlignVerticalCenterWith="commands">
                                 <Run Text="Priority:" />
-                                <Run Text="{x:Bind DownloadOperation.Priority}" />
+                                <Run Text="{x:Bind DownloadOperation.Priority, Mode=OneWay}" />
                             </TextBlock>
                             <CommandBar DefaultLabelPosition="Right" Background="Transparent" x:Name="commands"
                                         RelativePanel.AlignRightWithPanel="True" RelativePanel.Below="progress">

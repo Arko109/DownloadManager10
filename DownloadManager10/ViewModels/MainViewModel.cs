@@ -8,6 +8,8 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
@@ -22,6 +24,8 @@ namespace DownloadManager10.ViewModels
 {
     public class MainViewModel : Observable
     {
+        private readonly HttpClient _httpClient = new HttpClient();
+
         public ObservableCollection<DownloadItem> Downloads = new ObservableCollection<DownloadItem>();
         private string _url;
 
@@ -52,7 +56,7 @@ namespace DownloadManager10.ViewModels
 
         public RelayCommand DownloadCommand => _downloadCommand ?? (_downloadCommand = new RelayCommand(() =>
         {
-            StartDownload(BackgroundTransferPriority.Default);
+            StartDownload();
         }));
 
         private RelayCommand _onNavigatedTo;
@@ -135,19 +139,26 @@ namespace DownloadManager10.ViewModels
             }
         }
 
-        private async void StartDownload(BackgroundTransferPriority priority)
+        private async void StartDownload()
         {
             if (!Uri.TryCreate(Url.Trim(), UriKind.Absolute, out Uri source))
                 return;
 
-            string fileName;
-            Regex regex = new Regex(@"[^\/?#]*\.[^\/?#]*");
-            MatchCollection matches = regex.Matches(source.LocalPath);
-            fileName = matches.LastOrDefault()?.Value ?? "download.txt";
+            string fileName = null;
+            var response = await _httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, source));
+            if (response.IsSuccessStatusCode && response.Content.Headers.ContentDisposition is ContentDispositionHeaderValue cd)
+                fileName = cd.FileName;
+            if (fileName == null)
+            {
+                Regex regex = new Regex(@"[^\/?#]*\.[^\/?#]*");
+                MatchCollection matches = regex.Matches(source.LocalPath);
+                fileName = matches.LastOrDefault()?.Value;
+            }
+            fileName = fileName ?? "download.bin";
 
             StorageFile destinationFile;
             FileSavePicker savePicker = new FileSavePicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary };
-            var ext = fileName.Split('.').LastOrDefault() ?? "txt";
+            var ext = fileName.Split('.').LastOrDefault() ?? "bin";
             savePicker.FileTypeChoices.Add(ext, new List<string>() { '.' + ext });
             savePicker.SuggestedFileName = fileName;
 
@@ -201,10 +212,10 @@ namespace DownloadManager10.ViewModels
 
             DownloadOperation download = downloader.CreateDownload(source, destinationFile);
 
-            Debug.WriteLine(String.Format(CultureInfo.CurrentCulture, "Downloading {0} to {1} with {2} priority, {3}",
-                source.AbsoluteUri, destinationFile.Name, priority, download.Guid));
+            Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "Downloading {0} to {1} with {2} priority, {3}",
+                source.AbsoluteUri, destinationFile.Name, Priority, download.Guid));
 
-            download.Priority = priority;
+            download.Priority = Priority;
 
             await HandleDownloadAsync(download, true);
             Url = string.Empty;
