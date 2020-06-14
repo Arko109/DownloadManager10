@@ -23,9 +23,6 @@
         </Grid.RowDefinitions>
 
         <Grid x:Name="AppTitleBar" Background="Transparent">
-            <!-- Width of the padding columns is set in LayoutMetricsChanged handler. -->
-            <!-- Using padding columns instead of Margin ensures that the background
-                 paints the area under the caption control buttons (for transparent buttons). -->
             <Grid.ColumnDefinitions>
                 <ColumnDefinition x:Name="LeftPaddingColumn" Width="0" />
                 <ColumnDefinition />
@@ -44,7 +41,6 @@
                     <Style TargetType="ListViewItem">
                         <Setter Property="IsFocusEngagementEnabled" Value="True" />
                         <Setter Property="Background" Value="{ThemeResource SystemControlAcrylicElementBrush}" />
-                        <!--<Setter Property="Margin" Value="{StaticResource MediumBottomMargin}" />-->
                         <Setter Property="Padding" Value="12" />
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                     </Style>
@@ -79,9 +75,6 @@
         </RelativePanel>
         <CommandBar  Grid.Row="3"
                     RelativePanel.Below="list" RelativePanel.AlignLeftWithPanel="True" RelativePanel.AlignRightWithPanel="True">
-            <!--<CommandBar.Resources>
-                <Style TargetType="AppBarButton" BasedOn="{StaticResource AppBarButtonRevealStyle}" />
-            </CommandBar.Resources>-->
             <AppBarButton Label="Add" Icon="Add" AllowFocusOnInteraction="True">
                 <AppBarButton.Flyout>
                     <Flyout LightDismissOverlayMode="On">

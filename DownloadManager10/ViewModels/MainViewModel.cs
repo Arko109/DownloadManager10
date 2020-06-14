@@ -211,15 +211,14 @@ namespace DownloadManager10.ViewModels
             downloader.SuccessToastNotification = new ToastNotification(content.GetXml());
 
             DownloadOperation download = downloader.CreateDownload(source, destinationFile);
+            download.Priority = Priority;
 
             Debug.WriteLine(string.Format(CultureInfo.CurrentCulture, "Downloading {0} to {1} with {2} priority, {3}",
                 source.AbsoluteUri, destinationFile.Name, Priority, download.Guid));
 
-            download.Priority = Priority;
-
-            await HandleDownloadAsync(download, true);
             Url = string.Empty;
             Priority = BackgroundTransferPriority.Default;
+            await HandleDownloadAsync(download, true);
         }
 
         private async Task HandleDownloadAsync(DownloadOperation download, bool start)
