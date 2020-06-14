@@ -25,6 +25,7 @@ namespace DownloadManager10.ViewModels
     public class MainViewModel : Observable
     {
         private readonly HttpClient _httpClient = new HttpClient();
+        private readonly Regex _regex = new Regex(@"[^\/?#]*\.[^\/?#]*");
 
         public ObservableCollection<DownloadItem> Downloads = new ObservableCollection<DownloadItem>();
         private string _url;
@@ -54,21 +55,21 @@ namespace DownloadManager10.ViewModels
 
         private RelayCommand _downloadCommand;
 
-        public RelayCommand DownloadCommand => _downloadCommand ?? (_downloadCommand = new RelayCommand(() =>
+        public RelayCommand DownloadCommand => _downloadCommand ??= new RelayCommand(() =>
         {
             StartDownload();
-        }));
+        });
 
         private RelayCommand _onNavigatedTo;
 
-        public RelayCommand OnNavigatedTo => _onNavigatedTo ?? (_onNavigatedTo = new RelayCommand(async () =>
+        public RelayCommand OnNavigatedTo => _onNavigatedTo ??= new RelayCommand(async () =>
         {
             await DiscoverActiveDownloadsAsync();
-        }));
+        });
 
         private RelayCommand _cancelAllCommand;
 
-        public RelayCommand CancelAllCommand => _cancelAllCommand ?? (_cancelAllCommand = new RelayCommand(() =>
+        public RelayCommand CancelAllCommand => _cancelAllCommand ??= new RelayCommand(() =>
         {
             Debug.WriteLine("Canceling Downloads: " + Downloads.Count);
 
@@ -79,27 +80,27 @@ namespace DownloadManager10.ViewModels
             }
 
             Downloads.Clear();
-        }));
+        });
 
         private RelayCommand _pauseAllCommand;
 
-        public RelayCommand PauseAllCommand => _pauseAllCommand ?? (_pauseAllCommand = new RelayCommand(() =>
+        public RelayCommand PauseAllCommand => _pauseAllCommand ??= new RelayCommand(() =>
         {
             foreach (var dl in Downloads.Where(di => di.Status == BackgroundTransferStatus.Running))
             {
                 dl.DownloadOperation.Pause();
             }
-        }));
+        });
 
         private RelayCommand _resumeAllCommand;
 
-        public RelayCommand ResumeAllCommand => _resumeAllCommand ?? (_resumeAllCommand = new RelayCommand(() =>
+        public RelayCommand ResumeAllCommand => _resumeAllCommand ??= new RelayCommand(() =>
         {
             foreach (var dl in Downloads.Where(di => di.Status == BackgroundTransferStatus.PausedByApplication || di.Status == BackgroundTransferStatus.PausedCostedNetwork || di.Status == BackgroundTransferStatus.PausedNoNetwork || di.Status == BackgroundTransferStatus.PausedRecoverableWebErrorStatus || di.Status == BackgroundTransferStatus.PausedSystemPolicy))
             {
                 dl.DownloadOperation.Resume();
             }
-        }));
+        });
 
         #endregion Commands
 
@@ -145,16 +146,15 @@ namespace DownloadManager10.ViewModels
                 return;
 
             string fileName = null;
-            var response = await _httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, source));
+            var response = await _httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Head, source), HttpCompletionOption.ResponseHeadersRead);
             if (response.IsSuccessStatusCode && response.Content.Headers.ContentDisposition is ContentDispositionHeaderValue cd)
                 fileName = cd.FileName;
             if (fileName == null)
             {
-                Regex regex = new Regex(@"[^\/?#]*\.[^\/?#]*");
-                MatchCollection matches = regex.Matches(source.LocalPath);
+                MatchCollection matches = _regex.Matches(source.LocalPath);
                 fileName = matches.LastOrDefault()?.Value;
             }
-            fileName = fileName ?? "download.bin";
+            fileName ??= "download.bin";
 
             StorageFile destinationFile;
             FileSavePicker savePicker = new FileSavePicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary };
@@ -310,30 +310,15 @@ namespace DownloadManager10.ViewModels
 
         private RelayCommand<ElementTheme> _switchThemeCommand;
 
-        public RelayCommand<ElementTheme> SwitchThemeCommand
+        public RelayCommand<ElementTheme> SwitchThemeCommand => _switchThemeCommand ??= new RelayCommand<ElementTheme>(async (param) =>
         {
-            get
-            {
-                if (_switchThemeCommand == null)
-                {
-                    _switchThemeCommand = new RelayCommand<ElementTheme>(
-                        async (param) =>
-                        {
-                            ElementTheme = param;
-                            await ThemeSelectorService.SetThemeAsync(param);
-                        });
-                }
-
-                return _switchThemeCommand;
-            }
-        }
+            await ThemeSelectorService.SetThemeAsync(ElementTheme = param);
+        });
 
         private string GetVersionDescription()
         {
             var appName = "AppDisplayName".GetLocalized();
-            var package = Package.Current;
-            var packageId = package.Id;
-            var version = packageId.Version;
+            var version = Package.Current.Id.Version;
 
             return $"{appName} - {version.Major}.{version.Minor}.{version.Build}.{version.Revision}";
         }
