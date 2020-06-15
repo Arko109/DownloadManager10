@@ -5,6 +5,7 @@ using Microsoft.Toolkit.Uwp.Notifications;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
@@ -51,6 +52,14 @@ namespace DownloadManager10.ViewModels
             BackgroundTransferPriority.Low
         };
 
+        private Visibility _emptyListPromptVisibility;
+
+        public Visibility EmptyListPromptVisibility
+        {
+            get => _emptyListPromptVisibility;
+            set { Set(ref _emptyListPromptVisibility, value); }
+        }
+
         #region Commands
 
         private RelayCommand _downloadCommand;
@@ -96,9 +105,30 @@ namespace DownloadManager10.ViewModels
 
         public RelayCommand ResumeAllCommand => _resumeAllCommand ??= new RelayCommand(() =>
         {
-            foreach (var dl in Downloads.Where(di => di.Status == BackgroundTransferStatus.PausedByApplication || di.Status == BackgroundTransferStatus.PausedCostedNetwork || di.Status == BackgroundTransferStatus.PausedNoNetwork || di.Status == BackgroundTransferStatus.PausedRecoverableWebErrorStatus || di.Status == BackgroundTransferStatus.PausedSystemPolicy))
+            foreach (var dl in Downloads.Where(di => di.Status == BackgroundTransferStatus.PausedByApplication ||
+                                                     di.Status == BackgroundTransferStatus.PausedCostedNetwork ||
+                                                     di.Status == BackgroundTransferStatus.PausedNoNetwork ||
+                                                     di.Status == BackgroundTransferStatus.PausedRecoverableWebErrorStatus ||
+                                                     di.Status == BackgroundTransferStatus.PausedSystemPolicy))
             {
                 dl.DownloadOperation.Resume();
+            }
+        });
+
+        private RelayCommand _cleanUpCommand;
+
+        public RelayCommand CleanUpCommand => _cleanUpCommand ??= new RelayCommand(() =>
+        {
+            var toRemove = new List<DownloadItem>();
+            foreach (var dl in Downloads.Where(di => di.Status == BackgroundTransferStatus.Canceled ||
+                                                     di.Status == BackgroundTransferStatus.Completed ||
+                                                     di.Status == BackgroundTransferStatus.Error))
+            {
+                toRemove.Add(dl);
+            }
+            foreach (var dl in toRemove)
+            {
+                Downloads.Remove(dl);
             }
         });
 
@@ -107,6 +137,10 @@ namespace DownloadManager10.ViewModels
         public MainViewModel()
         {
             VersionDescription = GetVersionDescription();
+            Downloads.CollectionChanged += (object sender, NotifyCollectionChangedEventArgs e) =>
+            {
+                EmptyListPromptVisibility = Downloads.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            };
         }
 
         private async Task DiscoverActiveDownloadsAsync()

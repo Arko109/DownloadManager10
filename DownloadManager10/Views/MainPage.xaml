@@ -72,12 +72,19 @@
                     </DataTemplate>
                 </ListView.ItemTemplate>
             </ListView>
+            <StackPanel RelativePanel.AlignHorizontalCenterWithPanel="True" RelativePanel.AlignVerticalCenterWithPanel="True"
+                        Visibility="{x:Bind ViewModel.EmptyListPromptVisibility, Mode=OneWay}" Spacing="24">
+                <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}">No downloads detected</TextBlock>
+                <CommandBar DefaultLabelPosition="Right" HorizontalAlignment="Center">
+                    <AppBarButton Icon="Add" Label="Add a download" AllowFocusOnInteraction="True" Flyout="{x:Bind AddFlyout}" />
+                </CommandBar>
+            </StackPanel>
         </RelativePanel>
         <CommandBar  Grid.Row="3"
                     RelativePanel.Below="list" RelativePanel.AlignLeftWithPanel="True" RelativePanel.AlignRightWithPanel="True">
             <AppBarButton Label="Add" Icon="Add" AllowFocusOnInteraction="True">
                 <AppBarButton.Flyout>
-                    <Flyout LightDismissOverlayMode="On">
+                    <Flyout x:Name="AddFlyout" LightDismissOverlayMode="On">
                         <StackPanel Spacing="12" Width="300">
                             <TextBlock Text="Add a new download" Style="{ThemeResource SubtitleTextBlockStyle}" />
                             <StackPanel Spacing="6">
@@ -99,6 +106,12 @@
             <AppBarButton Label="Resume all" Icon="Play" Command="{x:Bind ViewModel.ResumeAllCommand}" />
             <AppBarButton Label="Pause all" Icon="Pause" Command="{x:Bind ViewModel.PauseAllCommand}" />
             <AppBarButton Label="Cancel all" Icon="Cancel" Command="{x:Bind ViewModel.CancelAllCommand}" />
+            <AppBarButton Label="Clean up" Command="{x:Bind ViewModel.CleanUpCommand}"
+                          ToolTipService.ToolTip="Remove completed, cancelled and failed downloads">
+                <AppBarButton.Icon>
+                    <FontIcon Glyph="&#xEA99;" />
+                </AppBarButton.Icon>
+            </AppBarButton>
 
             <AppBarSeparator />
 
