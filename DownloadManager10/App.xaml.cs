@@ -31,6 +31,7 @@ namespace DownloadManager10
             }
             var titleBar = ApplicationView.GetForCurrentView().TitleBar;
             titleBar.ButtonBackgroundColor = Windows.UI.Colors.Transparent;
+            titleBar.ButtonForegroundColor = Windows.UI.Colors.Black;
         }
 
         protected override async void OnActivated(IActivatedEventArgs args)
