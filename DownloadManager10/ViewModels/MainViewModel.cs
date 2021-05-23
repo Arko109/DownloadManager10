@@ -190,6 +190,9 @@ namespace DownloadManager10.ViewModels
             }
             fileName ??= "download.bin";
 
+            var regex = string.Format(@"([{0}]*\.+$)|([{0}]+)", Regex.Escape(new string(System.IO.Path.GetInvalidFileNameChars())));
+            fileName = Regex.Replace(fileName, regex, "");
+
             StorageFile destinationFile;
             FileSavePicker savePicker = new FileSavePicker { SuggestedStartLocation = PickerLocationId.DocumentsLibrary };
             var ext = fileName.Split('.').LastOrDefault() ?? "bin";
