@@ -1,4 +1,5 @@
-﻿using DownloadManager10.Helpers;
+﻿using ByteSizeLib;
+using DownloadManager10.Helpers;
 using DownloadManager10.Models;
 using DownloadManager10.Services;
 using Microsoft.Toolkit.Uwp.Notifications;
@@ -321,6 +322,13 @@ namespace DownloadManager10.ViewModels
             {
                 di.Progress = percent;
                 di.Status = currentProgress.Status;
+
+                var now = DateTime.Now;
+                var timeDiff = (now - di.LastUpdate).TotalSeconds;
+                var bytesDownloaded = currentProgress.BytesReceived - di.LastBytes;
+                di.LastUpdate = now;
+                di.LastBytes = currentProgress.BytesReceived;
+                di.Speed = ByteSize.FromBytes(bytesDownloaded / timeDiff).MegaBytes;
             }
         }
 

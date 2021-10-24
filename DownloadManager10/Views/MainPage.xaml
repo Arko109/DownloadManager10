@@ -40,21 +40,23 @@
                 <ListView.ItemContainerStyle>
                     <Style TargetType="ListViewItem">
                         <Setter Property="IsFocusEngagementEnabled" Value="True" />
-                        <Setter Property="Background" Value="{ThemeResource SystemControlAcrylicElementBrush}" />
-                        <Setter Property="Padding" Value="12" />
+                        <Setter Property="Padding" Value="0,12" />
                         <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                     </Style>
                 </ListView.ItemContainerStyle>
                 <ListView.ItemTemplate>
                     <DataTemplate x:DataType="m:DownloadItem">
-                        <RelativePanel>
+                        <RelativePanel Padding="12"
+                            Background="{ThemeResource SystemControlAcrylicElementBrush}" CornerRadius="{StaticResource ControlCornerRadius}">
                             <TextBlock Text="{x:Bind Name}" Style="{ThemeResource TitleTextBlockStyle}" x:Name="name" />
                             <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" x:Name="status"
                                        RelativePanel.AlignRightWithPanel="True" RelativePanel.Above="progress">
                                 <Run Text="{x:Bind Status, Mode=OneWay, TargetNullValue=Waiting}" />
                                 <Run Text="-" />
                                 <Run Text="{x:Bind sys:String.Format('{0:0.00}', Progress), Mode=OneWay}" />
-                                <Run Text="%" />
+                                <Run Text="% at" />
+                                <Run Text="{x:Bind sys:String.Format('{0:0.00}', Speed), Mode=OneWay}"/>
+                                <Run Text="MBps" />
                             </TextBlock>
                             <ProgressBar Value="{x:Bind Progress, Mode=OneWay}" x:Name="progress" Margin="{StaticResource MediumTopBottomMargin}"
                                          RelativePanel.Below="name" RelativePanel.AlignLeftWithPanel="True" RelativePanel.AlignRightWithPanel="True" />
