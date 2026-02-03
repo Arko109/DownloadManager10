@@ -9,7 +9,7 @@
 
   <Identity
     Name="45CFE1D3-DBDC-404B-BE2F-FA1532DCEDBF"
-    Publisher="CN=grine"
+    Publisher="CN=Arko109"
     Version="1.0.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="45CFE1D3-DBDC-404B-BE2F-FA1532DCEDBF" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
